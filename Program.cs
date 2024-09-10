@@ -1,13 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MinimalApiVehicle.Domain.Entities;
 using MinimalApiVehicle.Domain.Interfaces;
+using MinimalApiVehicle.Domain.ModelViews;
 using MinimalApiVehicle.Domain.Services;
 using MinimalApiVehicle.DTOs;
 using MinimalApiVehicle.Infraestructure.Db;
 
+#region Builder
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IAdministratorService, AdministratorService>();
+builder.Services.AddScoped<IVehicleService, VehicleService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -19,15 +24,45 @@ builder.Services.AddDbContext<DbContexto>(options =>
 
 var app = builder.Build();
 
-app.MapGet("/", () => "Hello World!");
-app.MapPost("/login", ([FromBody] LoginDTO loginDTO, IAdministratorService administratorService) => {
+#endregion
+
+#region Home
+app.MapGet("/", () => Results.Json(new Home())).WithTags("Home");
+#endregion
+
+#region Administrators
+app.MapPost("/administrators/login", ([FromBody] LoginDTO loginDTO, IAdministratorService administratorService) => {
     if (administratorService.Login(loginDTO)!= null)
         return Results.Ok("Login com Sucesso");
     else
         return Results.Unauthorized();  
-});
+}).WithTags("Administrators");
+#endregion
 
+#region Vehicles
+app.MapPost("/vehicles", ([FromBody] VehicleDTO vehicleDTO, IVehicleService vehicleService) => {
+    var vehicle = new Vehicle{
+        Name = vehicleDTO.Name,
+        Make = vehicleDTO.Make,
+        Ano = vehicleDTO.Ano
+    };
+    vehicleService.Include(vehicle);
+
+    return Results.Created($"/vehicle/{vehicle.Id}", vehicle);
+
+}).WithTags("Vehicles");
+
+app.MapGet("/vehicles", ([FromQuery] int? page, IVehicleService vehicleService) => {
+    var vehicle = vehicleService.AllVehicles(page);
+
+    return Results.Ok(vehicle);
+}).WithTags("Vehicles");
+#endregion
+
+#region App
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.Run();
+
+#endregion

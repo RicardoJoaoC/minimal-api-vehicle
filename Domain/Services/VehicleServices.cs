@@ -32,7 +32,7 @@ public class VehicleService : IVehicleService
         _contexto.SaveChanges();
     }
 
-    public List<Vehicle> AllVehicles(int page = 1, string? name = null, string? make = null)
+    public List<Vehicle> AllVehicles(int? page = 1, string? name = null, string? make = null)
     {
         var query = _contexto.vehicles.AsQueryable();
         if(!string.IsNullOrEmpty(name))
@@ -42,7 +42,9 @@ public class VehicleService : IVehicleService
 
         int itensPerPage = 10;
 
-        query = query.Skip((page - 1) * itensPerPage).Take(itensPerPage);
+        if (page != null){
+            query = query.Skip(((int)page - 1) * itensPerPage).Take(itensPerPage);
+        }
 
         return query.ToList();
     }
